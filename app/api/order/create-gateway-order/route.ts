@@ -90,7 +90,7 @@ topupStatus: "pending",      // topup not started yet
     formData.append("remark1", userId || "NO-USER"); // identify user later
     formData.append("remark2", itemSlug);            // product identifier
 
-    const resp = await fetch("https://xtragateway.site/api/create-order", {
+    const resp = await fetch("https://xyzpay.site/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData.toString(),
