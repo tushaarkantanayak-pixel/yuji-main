@@ -123,7 +123,9 @@ const userId = localStorage.getItem("userId");
           {/* Proceed Button */}
           <button
             onClick={handleProceed}
-            disabled={loading}
+            // disabled={loading}
+                        disabled={true}
+
             className="w-full p-3 mt-2 bg-[var(--accent)] text-white rounded-xl disabled:opacity-50"
           >
             {loading ? "Processing..." : "Proceed to Pay"}
