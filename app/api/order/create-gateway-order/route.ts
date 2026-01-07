@@ -190,7 +190,7 @@ export async function POST(req: Request) {
     const price = await resolvePrice(gameSlug, itemSlug, userType);
 
     /* ---------- ORDER ID ---------- */
-    const orderId =
+     const orderId =
       "TOPUP_" +
       Date.now().toString(36) +
       "_" +
@@ -229,7 +229,7 @@ export async function POST(req: Request) {
       `${process.env.NEXT_PUBLIC_BASE_URLU}/payment/topup-complete`
     );
 
-    const resp = await fetch("https://xyzpay.site/api/create-order", {
+    const resp = await fetch("https://xtragateway.site/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData.toString(),
