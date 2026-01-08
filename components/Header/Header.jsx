@@ -163,6 +163,13 @@ export default function Header() {
                   >
                    Leader Board
                   </Link>
+                   <Link
+                    href="/admin-panal"
+                    className="block py-2 hover:text-[var(--accent)]"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                  Membership
+                  </Link>
 
                   {/* ADMIN / OWNER */}
                   {( user.userType === "owner") && (
@@ -174,15 +181,7 @@ export default function Header() {
                       Admin Panel
                     </Link>
                   )}
-                   {( user.userType === "admin") && (
-                    <Link
-                      href="/admin-panal"
-                      className="block py-2 hover:text-[var(--accent)]"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Reseller Panel
-                    </Link>
-                  )}
+                 
 
                   <button
                     onClick={handleLogout}
