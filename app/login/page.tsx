@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 
 /* ================= TYPES ================= */
-type Tab = "login" | "register" | "forgot";
-type ForgotStep = 1 | 2;
+type Tab = "login" | "register";
+type ForgotStep = 0 | 1 | 2;
 
 /* ================= PAGE ================= */
 export default function AuthPage() {
@@ -29,7 +29,7 @@ export default function AuthPage() {
     password: "",
   });
 
-  const [forgotStep, setForgotStep] = useState<ForgotStep>(1);
+  const [forgotStep, setForgotStep] = useState<ForgotStep>(0);
   const [forgotData, setForgotData] = useState({
     email: "",
     otp: "",
@@ -48,7 +48,6 @@ export default function AuthPage() {
   const isGmail = (email: string) =>
     /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
   const isPhone = (phone: string) => /^[0-9]{10}$/.test(phone);
-  const togglePasswordVisibility = () => setShowPassword((s) => !s);
 
   const resetMessages = () => {
     setErrors({});
@@ -58,8 +57,8 @@ export default function AuthPage() {
   /* ================= LOGIN ================= */
   const handleLogin = async () => {
     const errs: Record<string, string> = {};
-    if (!loginData.user.trim()) errs.user = "Email or phone required";
-    if (!loginData.password.trim()) errs.password = "Password required";
+    if (!loginData.user) errs.user = "Email or phone required";
+    if (!loginData.password) errs.password = "Password required";
     if (Object.keys(errs).length) return setErrors(errs);
 
     setLoggingIn(true);
@@ -93,7 +92,7 @@ export default function AuthPage() {
   /* ================= REGISTER ================= */
   const handleRegister = async () => {
     const errs: Record<string, string> = {};
-    if (!regData.name.trim()) errs.name = "Name required";
+    if (!regData.name) errs.name = "Name required";
     if (!isGmail(regData.email)) errs.email = "Valid Gmail required";
     if (!isPhone(regData.phone)) errs.phone = "Valid phone required";
     if (regData.password.length < 6)
@@ -123,7 +122,7 @@ export default function AuthPage() {
     }
   };
 
-  /* ================= FORGOT – SEND OTP ================= */
+  /* ================= FORGOT PASSWORD ================= */
   const sendOtp = async () => {
     if (!isGmail(forgotData.email))
       return setErrors({ email: "Valid Gmail required" });
@@ -150,7 +149,6 @@ export default function AuthPage() {
     }
   };
 
-  /* ================= FORGOT – RESET ================= */
   const resetPassword = async () => {
     const errs: Record<string, string> = {};
     if (!forgotData.otp) errs.otp = "OTP required";
@@ -173,8 +171,7 @@ export default function AuthPage() {
       if (!data.success) return setErrors({ otp: data.message });
 
       setSuccess("Password reset successful. Please login.");
-      setTab("login");
-      setForgotStep(1);
+      setForgotStep(0);
       setForgotData({ email: "", otp: "", newPassword: "" });
     } catch {
       setErrors({ otp: "Reset failed" });
@@ -185,53 +182,40 @@ export default function AuthPage() {
 
   /* ================= UI ================= */
   return (
-    <section className="min-h-screen flex items-center justify-center px-5 bg-gradient-to-br from-[var(--background)] via-[var(--card)] to-[var(--background)]">
+    <section className="min-h-screen flex items-center justify-center px-5 bg-[var(--background)]">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-[var(--accent)]">Welcome</h1>
-          <p className="text-[var(--muted)] mt-2">
-            {tab === "login"
-              ? "Sign in to your account"
-              : tab === "register"
-              ? "Create a new account"
-              : "Reset your password"}
-          </p>
-        </div>
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl overflow-hidden">
+
           {/* Tabs */}
           <div className="flex">
-            {["login", "register", "forgot"].map((t) => (
+            {["login", "register"].map((t) => (
               <button
                 key={t}
                 onClick={() => {
                   resetMessages();
+                  setForgotStep(0);
                   setTab(t as Tab);
-                  if (t !== "forgot") setForgotStep(1);
                 }}
-                className={`flex-1 py-3 font-semibold transition ${
+                className={`flex-1 py-3 font-semibold ${
                   tab === t
                     ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--background)] text-[var(--muted)] hover:bg-[var(--border)]"
+                    : "bg-[var(--background)] text-[var(--muted)]"
                 }`}
               >
-                {t === "login"
-                  ? "Login"
-                  : t === "register"
-                  ? "Register"
-                  : "Forgot"}
+                {t === "login" ? "Login" : "Register"}
               </button>
             ))}
           </div>
 
           <div className="p-6 space-y-5">
             {success && (
-              <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 flex gap-2 text-green-400">
+              <div className="p-3 rounded-xl bg-green-500/10 text-green-400 flex gap-2">
                 <CheckCircle size={18} /> {success}
               </div>
             )}
 
-            {/* LOGIN */}
+            {/* ================= LOGIN ================= */}
             {tab === "login" && (
               <>
                 <Input
@@ -243,73 +227,40 @@ export default function AuthPage() {
                     setLoginData({ ...loginData, user: v })
                   }
                 />
+
                 <PasswordInput
                   value={loginData.password}
                   error={errors.password}
                   show={showPassword}
-                  toggle={togglePasswordVisibility}
+                  toggle={() => setShowPassword(!showPassword)}
                   onChange={(v: string) =>
                     setLoginData({ ...loginData, password: v })
                   }
                 />
+
                 <PrimaryButton
                   loading={loggingIn}
                   text="Sign In"
                   onClick={handleLogin}
                 />
-              </>
-            )}
 
-            {/* REGISTER */}
-            {tab === "register" && (
-              <>
-                <Input
-                  icon={<User size={16} />}
-                  placeholder="Full Name"
-                  value={regData.name}
-                  error={errors.name}
-                  onChange={(v: string) =>
-                    setRegData({ ...regData, name: v })
-                  }
-                />
-                <Input
-                  icon={<Mail size={16} />}
-                  placeholder="Gmail"
-                  value={regData.email}
-                  error={errors.email}
-                  onChange={(v: string) =>
-                    setRegData({ ...regData, email: v })
-                  }
-                />
-                <Input
-                  icon={<Phone size={16} />}
-                  placeholder="Phone"
-                  value={regData.phone}
-                  error={errors.phone}
-                  onChange={(v: string) =>
-                    setRegData({ ...regData, phone: v })
-                  }
-                />
-                <PasswordInput
-                  value={regData.password}
-                  error={errors.password}
-                  show={showPassword}
-                  toggle={togglePasswordVisibility}
-                  onChange={(v: string) =>
-                    setRegData({ ...regData, password: v })
-                  }
-                />
-                <PrimaryButton
-                  loading={registering}
-                  text="Create Account"
-                  onClick={handleRegister}
-                />
-              </>
-            )}
+                <div className="flex justify-between text-sm">
+                  <button
+                    onClick={() => setForgotStep(1)}
+                    className="text-[var(--accent)] hover:underline"
+                  >
+                    Forgot password?
+                  </button>
 
-            {/* FORGOT */}
-            {tab === "forgot" && (
-              <>
+                  <button
+                    onClick={() => setTab("register")}
+                    className="text-[var(--muted)] hover:underline"
+                  >
+                    No account? Register
+                  </button>
+                </div>
+
+                {/* FORGOT FLOW */}
                 {forgotStep === 1 && (
                   <>
                     <Input
@@ -344,7 +295,7 @@ export default function AuthPage() {
                       value={forgotData.newPassword}
                       error={errors.newPassword}
                       show={showPassword}
-                      toggle={togglePasswordVisibility}
+                      toggle={() => setShowPassword(!showPassword)}
                       onChange={(v: string) =>
                         setForgotData({
                           ...forgotData,
@@ -359,6 +310,64 @@ export default function AuthPage() {
                     />
                   </>
                 )}
+              </>
+            )}
+
+            {/* ================= REGISTER ================= */}
+            {tab === "register" && (
+              <>
+                <Input
+                  icon={<User size={16} />}
+                  placeholder="Full Name"
+                  value={regData.name}
+                  error={errors.name}
+                  onChange={(v: string) =>
+                    setRegData({ ...regData, name: v })
+                  }
+                />
+                <Input
+                  icon={<Mail size={16} />}
+                  placeholder="Gmail"
+                  value={regData.email}
+                  error={errors.email}
+                  onChange={(v: string) =>
+                    setRegData({ ...regData, email: v })
+                  }
+                />
+                <Input
+                  icon={<Phone size={16} />}
+                  placeholder="Phone"
+                  value={regData.phone}
+                  error={errors.phone}
+                  onChange={(v: string) =>
+                    setRegData({ ...regData, phone: v })
+                  }
+                />
+                <PasswordInput
+                  value={regData.password}
+                  error={errors.password}
+                  show={showPassword}
+                  toggle={() => setShowPassword(!showPassword)}
+                  onChange={(v: string) =>
+                    setRegData({ ...regData, password: v })
+                  }
+                />
+
+                <PrimaryButton
+                  loading={registering}
+                  text="Create Account"
+                  onClick={handleRegister}
+                />
+
+                <p className="text-sm text-center text-[var(--muted)]">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => setTab("login")}
+                    className="text-[var(--accent)] hover:underline"
+                  >
+                    Login
+                  </button>
+                </p>
               </>
             )}
           </div>
@@ -381,7 +390,7 @@ function Input({ icon, value, onChange, placeholder, error }: any) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full py-2.5 pl-9 pr-3 text-sm rounded-xl bg-[var(--background)] border ${
+          className={`w-full py-2.5 pl-9 pr-3 rounded-xl bg-[var(--background)] border ${
             error
               ? "border-red-400"
               : "border-[var(--border)] focus:border-[var(--accent)]"
@@ -406,7 +415,7 @@ function PasswordInput({ value, onChange, show, toggle, error }: any) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Password"
-          className={`w-full py-2.5 px-3 pr-10 text-sm rounded-xl bg-[var(--background)] border ${
+          className={`w-full py-2.5 px-3 pr-10 rounded-xl bg-[var(--background)] border ${
             error
               ? "border-red-400"
               : "border-[var(--border)] focus:border-[var(--accent)]"
