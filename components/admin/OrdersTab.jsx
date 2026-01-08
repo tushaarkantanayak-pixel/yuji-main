@@ -2,21 +2,22 @@
 
 import { useState } from "react";
 
-export default function OrdersTab({ orders, onUpdateStatus }) {
-  const STATUS = ["pending", "success", "failed","refund"];
+export default function OrdersTab({ orders = [], onUpdateStatus }) {
+  const STATUS = ["pending", "success", "failed"];
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-[var(--border)]">
         <table className="w-full text-sm">
-          <thead className="border-b border-[var(--border)]">
-            <tr>
-              <th className="py-3 px-2 text-left">Game</th>
-              <th className="py-3 px-2 text-left">Date</th>
-              <th className="py-3 px-2 text-left">Item</th>
-              <th className="py-3 px-2 text-left">Price</th>
-              <th className="py-3 px-2 text-left">Status</th>
+          <thead className="bg-black/20 border-b border-[var(--border)]">
+            <tr className="text-left text-[var(--muted)]">
+              <th className="py-3 px-4">Game</th>
+              <th className="px-4">Date</th>
+              <th className="px-4">Item</th>
+              <th className="px-4">Price</th>
+              <th className="px-4">Status</th>
             </tr>
           </thead>
 
@@ -25,21 +26,27 @@ export default function OrdersTab({ orders, onUpdateStatus }) {
               <tr
                 key={o._id}
                 onClick={() => setSelectedOrder(o)}
-                className="border-b border-[var(--border)] cursor-pointer
-                           hover:bg-[var(--background)] transition"
+                className="border-t border-[var(--border)]
+                           cursor-pointer hover:bg-white/5 transition"
               >
-                <td className="py-3 px-2 font-medium">{o.gameSlug}</td>
+                <td className="py-3 px-4 font-medium">
+                  {o.gameSlug}
+                </td>
 
-                <td className="py-3 px-2 text-xs text-[var(--muted)]">
+                <td className="px-4 text-xs text-[var(--muted)]">
                   {new Date(o.createdAt).toLocaleString()}
                 </td>
 
-                <td className="py-3 px-2">{o.itemName}</td>
+                <td className="px-4 truncate max-w-xs">
+                  {o.itemName}
+                </td>
 
-                <td className="py-3 px-2 font-semibold">₹{o.price}</td>
+                <td className="px-4 font-semibold">
+                  ₹{o.price}
+                </td>
 
                 <td
-                  className="py-3 px-2"
+                  className="px-4"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <select
@@ -64,17 +71,84 @@ export default function OrdersTab({ orders, onUpdateStatus }) {
                 </td>
               </tr>
             ))}
+
+            {!orders.length && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="py-8 text-center text-[var(--muted)]"
+                >
+                  No orders found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
+      </div>
 
-        {orders.length === 0 && (
-          <p className="text-center text-[var(--muted)] py-6">
+      {/* ================= MOBILE CARDS ================= */}
+      <div className="md:hidden space-y-3 overflow-x-hidden">
+        {orders.map((o) => (
+          <div
+            key={o._id}
+            onClick={() => setSelectedOrder(o)}
+            className="rounded-2xl border border-[var(--border)]
+                       bg-[var(--card)] p-4
+                       cursor-pointer active:scale-[0.98]
+                       transition overflow-hidden"
+          >
+            <div className="flex justify-between items-start mb-2 min-w-0">
+              <div className="font-semibold truncate max-w-[70%]">
+                {o.gameSlug}
+              </div>
+
+              <span className="text-xs text-[var(--muted)] shrink-0">
+                {new Date(o.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            <div className="text-sm break-words line-clamp-2">
+              {o.itemName}
+            </div>
+
+            <div className="flex justify-between items-center mt-2">
+              <span className="font-semibold text-green-400">
+                ₹{o.price}
+              </span>
+
+              <div onClick={(e) => e.stopPropagation()}>
+                <select
+                  value={o.status}
+                  disabled={o.status === "success"}
+                  onChange={(e) =>
+                    onUpdateStatus(o.orderId, e.target.value)
+                  }
+                  className={`px-3 py-1 rounded-lg text-xs border
+                    ${
+                      o.status === "success"
+                        ? "bg-green-500/10 border-green-500 text-green-500 cursor-not-allowed"
+                        : "bg-[var(--background)] border-[var(--border)]"
+                    }`}
+                >
+                  {STATUS.map((s) => (
+                    <option key={s} value={s}>
+                      {s.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {!orders.length && (
+          <p className="text-center text-[var(--muted)] py-8">
             No orders found
           </p>
         )}
       </div>
 
-      {/* ================= MODAL ================= */}
+      {/* ================= MODAL (UNCHANGED) ================= */}
       {selectedOrder && (
         <OrderModal
           order={selectedOrder}
@@ -96,7 +170,6 @@ function OrderModal({ order, onClose, onUpdateStatus }) {
       <div className="bg-[var(--card)] border border-[var(--border)]
                       rounded-2xl w-full max-w-lg p-6 relative">
 
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-sm text-[var(--muted)] hover:text-red-500"
@@ -104,7 +177,9 @@ function OrderModal({ order, onClose, onUpdateStatus }) {
           ✕
         </button>
 
-        <h3 className="text-lg font-bold mb-4">Order Details</h3>
+        <h3 className="text-lg font-bold mb-4">
+          Order Details
+        </h3>
 
         <div className="space-y-3 text-sm">
           <Detail label="Order ID" value={order.orderId} mono />
@@ -117,7 +192,6 @@ function OrderModal({ order, onClose, onUpdateStatus }) {
           <Detail label="Email" value={order.email} />
           <Detail label="Phone" value={order.phone} />
           <Detail label="Payment Status" value={order.paymentStatus} />
-
           <Detail label="Topup Status" value={order.topupStatus} />
           <Detail label="Price" value={`₹${order.price}`} />
           <Detail
@@ -125,8 +199,6 @@ function OrderModal({ order, onClose, onUpdateStatus }) {
             value={new Date(order.createdAt).toLocaleString()}
           />
 
-
-          {/* STATUS UPDATE */}
           <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
             <span className="font-medium">Status</span>
 
@@ -160,9 +232,13 @@ function OrderModal({ order, onClose, onUpdateStatus }) {
 
 function Detail({ label, value, mono }) {
   return (
-    <div className="flex justify-between gap-4">
+    <div className="flex justify-between gap-4 min-w-0">
       <span className="text-[var(--muted)]">{label}</span>
-      <span className={mono ? "font-mono text-xs" : "font-medium"}>
+      <span
+        className={`${
+          mono ? "font-mono text-xs" : "font-medium"
+        } break-words max-w-[60%] text-right`}
+      >
         {value}
       </span>
     </div>

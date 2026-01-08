@@ -10,7 +10,7 @@ export default function BannersTab({ banners, onRefresh }) {
     bannerLink: "",
     bannerSummary: "",
     gameId: "",
-    isShow: true, // 👈 visibility
+    isShow: true,
   });
 
   const [editingId, setEditingId] = useState(null);
@@ -20,7 +20,7 @@ export default function BannersTab({ banners, onRefresh }) {
       ? localStorage.getItem("token")
       : null;
 
-  /* ================= ADD BANNER ================= */
+  /* ================= ADD / UPDATE (UNCHANGED LOGIC) ================= */
   const addBanner = async () => {
     if (!form.bannerImage || !form.bannerTitle || !form.bannerSlug) {
       alert("Image URL, Title & Slug are required");
@@ -34,15 +34,10 @@ export default function BannersTab({ banners, onRefresh }) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        bannerImage: form.bannerImage,
-        bannerTitle: form.bannerTitle,
-        bannerSlug: form.bannerSlug,
-        bannerLink: form.bannerLink,
-        bannerSummary: form.bannerSummary,
+        ...form,
         gameId: form.gameId
           ? form.gameId.split(",").map((g) => g.trim())
           : [],
-        isShow: form.isShow,
       }),
     });
 
@@ -56,60 +51,49 @@ export default function BannersTab({ banners, onRefresh }) {
     onRefresh();
   };
 
-  /* ================= START EDIT ================= */
-  const startEdit = (banner) => {
-    setEditingId(banner._id);
+  const startEdit = (b) => {
+    setEditingId(b._id);
     setForm({
-      bannerImage: banner.bannerImage || "",
-      bannerTitle: banner.bannerTitle || "",
-      bannerSlug: banner.bannerSlug || "",
-      bannerLink: banner.bannerLink || "",
-      bannerSummary: banner.bannerSummary || "",
-      gameId: banner.gameId?.join(", ") || "",
-      isShow: banner.isShow ?? true, // 👈 preload visibility
+      bannerImage: b.bannerImage || "",
+      bannerTitle: b.bannerTitle || "",
+      bannerSlug: b.bannerSlug || "",
+      bannerLink: b.bannerLink || "",
+      bannerSummary: b.bannerSummary || "",
+      gameId: b.gameId?.join(", ") || "",
+      isShow: b.isShow ?? true,
     });
   };
 
-  /* ================= UPDATE BANNER ================= */
-const updateBanner = async () => {
-  // we now update by SLUG, not by ID
-  if (!form.bannerSlug) {
-    alert("Banner slug is required");
-    return;
-  }
+  const updateBanner = async () => {
+    if (!form.bannerSlug) {
+      alert("Banner slug is required");
+      return;
+    }
 
-  const res = await fetch("/api/admin/banners/editbanner", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      bannerSlug: form.bannerSlug, // 👈 REQUIRED (used by backend)
+    const res = await fetch("/api/admin/banners/editbanner", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...form,
+        gameId: form.gameId
+          ? form.gameId.split(",").map((g) => g.trim())
+          : [],
+      }),
+    });
 
-      bannerImage: form.bannerImage,
-      bannerTitle: form.bannerTitle,
-      bannerLink: form.bannerLink,
-      bannerSummary: form.bannerSummary,
-      gameId: form.gameId
-        ? form.gameId.split(",").map((g) => g.trim())
-        : [],
-      isShow: form.isShow, // 👈 VISIBILITY TOGGLE
-    }),
-  });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.message || "Failed to update banner");
+      return;
+    }
 
-  const data = await res.json();
+    resetForm();
+    onRefresh();
+  };
 
-  if (!res.ok) {
-    alert(data.message || "Failed to update banner");
-    return;
-  }
-
-  resetForm();
-  onRefresh();
-};
-
-  /* ================= TOGGLE SHOW (LIST) ================= */
   const toggleShow = async (id, isShow) => {
     await fetch(`/api/admin/banners/${id}`, {
       method: "PUT",
@@ -117,15 +101,12 @@ const updateBanner = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        isShow: !isShow,
-      }),
+      body: JSON.stringify({ isShow: !isShow }),
     });
 
     onRefresh();
   };
 
-  /* ================= RESET ================= */
   const resetForm = () => {
     setEditingId(null);
     setForm({
@@ -140,50 +121,65 @@ const updateBanner = async () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
 
       {/* ================= FORM ================= */}
-      <div className="border border-[var(--border)] rounded-xl p-5 space-y-4">
-        <h3 className="font-bold text-lg">
-          {editingId ? "Edit Banner" : "Add New Banner"}
+      <div
+        className={`rounded-2xl border p-6 space-y-5
+        ${editingId ? "border-[var(--accent)]" : "border-[var(--border)]"}
+        bg-[var(--card)]`}
+      >
+        <h3 className="text-lg font-bold flex items-center gap-2">
+          {editingId ? "✏️ Edit Banner" : "➕ Add New Banner"}
         </h3>
 
-        <input
-          placeholder="Banner Image URL"
-          value={form.bannerImage}
-          onChange={(e) =>
-            setForm({ ...form, bannerImage: e.target.value })
-          }
-          className="w-full input"
-        />
+        {/* Image preview */}
+        {form.bannerImage && (
+          <img
+            src={form.bannerImage}
+            alt="Banner Preview"
+            className="w-full h-40 object-cover rounded-xl border"
+          />
+        )}
 
-        <input
-          placeholder="Banner Title"
-          value={form.bannerTitle}
-          onChange={(e) =>
-            setForm({ ...form, bannerTitle: e.target.value })
-          }
-          className="w-full input"
-        />
+        <div className="grid md:grid-cols-2 gap-4">
+          <input
+            placeholder="Banner Image URL"
+            value={form.bannerImage}
+            onChange={(e) =>
+              setForm({ ...form, bannerImage: e.target.value })
+            }
+            className="input"
+          />
 
-        <input
-          placeholder="Banner Slug (unique)"
-          value={form.bannerSlug}
-          onChange={(e) =>
-            setForm({ ...form, bannerSlug: e.target.value })
-          }
-          className="w-full input"
-          disabled={!!editingId}
-        />
+          <input
+            placeholder="Banner Title"
+            value={form.bannerTitle}
+            onChange={(e) =>
+              setForm({ ...form, bannerTitle: e.target.value })
+            }
+            className="input"
+          />
 
-        <input
-          placeholder="Banner Link"
-          value={form.bannerLink}
-          onChange={(e) =>
-            setForm({ ...form, bannerLink: e.target.value })
-          }
-          className="w-full input"
-        />
+          <input
+            placeholder="Banner Slug (unique)"
+            value={form.bannerSlug}
+            onChange={(e) =>
+              setForm({ ...form, bannerSlug: e.target.value })
+            }
+            disabled={!!editingId}
+            className="input disabled:opacity-60"
+          />
+
+          <input
+            placeholder="Banner Link"
+            value={form.bannerLink}
+            onChange={(e) =>
+              setForm({ ...form, bannerLink: e.target.value })
+            }
+            className="input"
+          />
+        </div>
 
         <input
           placeholder="Game IDs (comma separated)"
@@ -191,7 +187,7 @@ const updateBanner = async () => {
           onChange={(e) =>
             setForm({ ...form, gameId: e.target.value })
           }
-          className="w-full input"
+          className="input"
         />
 
         <textarea
@@ -200,43 +196,44 @@ const updateBanner = async () => {
           onChange={(e) =>
             setForm({ ...form, bannerSummary: e.target.value })
           }
-          className="w-full input"
+          className="input min-h-[80px]"
         />
 
-        {/* ================= VISIBILITY ================= */}
-        <div className="flex items-center gap-6">
-          <span className="text-sm font-medium">Visible</span>
+        {/* Visibility */}
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium">Visibility</span>
 
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="isShow"
-              checked={form.isShow === true}
-              onChange={() =>
-                setForm({ ...form, isShow: true })
-              }
-            />
-            <span className="text-sm">Yes</span>
-          </label>
+          <button
+            onClick={() =>
+              setForm({ ...form, isShow: true })
+            }
+            className={`px-3 py-1 rounded-full text-sm font-semibold
+              ${form.isShow
+                ? "bg-green-500/20 text-green-500"
+                : "border"}`}
+          >
+            Visible
+          </button>
 
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="isShow"
-              checked={form.isShow === false}
-              onChange={() =>
-                setForm({ ...form, isShow: false })
-              }
-            />
-            <span className="text-sm">No</span>
-          </label>
+          <button
+            onClick={() =>
+              setForm({ ...form, isShow: false })
+            }
+            className={`px-3 py-1 rounded-full text-sm font-semibold
+              ${!form.isShow
+                ? "bg-red-500/20 text-red-500"
+                : "border"}`}
+          >
+            Hidden
+          </button>
         </div>
 
-        {/* ================= ACTIONS ================= */}
+        {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={editingId ? updateBanner : addBanner}
-            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-black font-semibold"
+            className="px-5 py-2 rounded-xl bg-[var(--accent)]
+                       text-black font-semibold"
           >
             {editingId ? "Update Banner" : "Add Banner"}
           </button>
@@ -244,7 +241,7 @@ const updateBanner = async () => {
           {editingId && (
             <button
               onClick={resetForm}
-              className="px-4 py-2 rounded-lg border"
+              className="px-5 py-2 rounded-xl border"
             >
               Cancel
             </button>
@@ -253,15 +250,23 @@ const updateBanner = async () => {
       </div>
 
       {/* ================= LIST ================= */}
-      <div className="space-y-3">
-        <h3 className="font-bold text-lg">All Banners</h3>
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold">All Banners</h3>
 
         {banners.map((b) => (
           <div
             key={b._id}
-            className="flex justify-between items-center border border-[var(--border)] rounded-lg p-4"
+            className="flex flex-col md:flex-row md:items-center
+                       gap-4 border border-[var(--border)]
+                       rounded-xl p-4 bg-[var(--card)]"
           >
-            <div>
+            <img
+              src={b.bannerImage}
+              alt={b.bannerTitle}
+              className="w-full md:w-40 h-20 object-cover rounded-lg border"
+            />
+
+            <div className="flex-1">
               <p className="font-semibold">{b.bannerTitle}</p>
               <p className="text-xs text-[var(--muted)]">
                 {b.bannerSlug}
@@ -271,18 +276,19 @@ const updateBanner = async () => {
             <div className="flex gap-2">
               <button
                 onClick={() => startEdit(b)}
-                className="px-3 py-1 rounded-lg text-sm border"
+                className="px-4 py-1.5 rounded-lg text-sm border"
               >
                 Edit
               </button>
 
               <button
                 onClick={() => toggleShow(b._id, b.isShow)}
-                className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                  b.isShow
-                    ? "bg-green-500/20 text-green-500"
-                    : "bg-red-500/20 text-red-500"
-                }`}
+                className={`px-4 py-1.5 rounded-lg text-sm font-semibold
+                  ${
+                    b.isShow
+                      ? "bg-green-500/20 text-green-500"
+                      : "bg-red-500/20 text-red-500"
+                  }`}
               >
                 {b.isShow ? "Visible" : "Hidden"}
               </button>

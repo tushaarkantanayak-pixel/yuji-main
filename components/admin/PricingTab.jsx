@@ -1,104 +1,144 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 export default function PricingTab({
   pricingType,
   setPricingType,
-
   slabs,
   setSlabs,
-
   overrides,
   setOverrides,
-
   savingPricing,
   onSave,
 }) {
   const canSave =
     (slabs.length > 0 || overrides.length > 0) && !savingPricing;
 
-  /* ================= SLAB HELPERS ================= */
-  const updateSlab = (index, key, value) => {
+  /* ================= SLABS ================= */
+  const updateSlab = (i, key, value) => {
     const next = [...slabs];
-    next[index][key] = Number(value);
+    next[i][key] = Number(value);
     setSlabs(next);
   };
 
-  const deleteSlab = (index) => {
-    const next = slabs.filter((_, i) => i !== index);
+  const addSlab = () => {
+    setSlabs([...slabs, { min: 0, max: 0, percent: 0 }]);
+  };
+
+  const deleteSlab = (i) => {
+    const next = slabs.filter((_, index) => index !== i);
     setSlabs(next.length ? next : [{ min: 0, max: 0, percent: 0 }]);
   };
 
-  /* ================= OVERRIDE HELPERS ================= */
-  const updateOverride = (index, key, value) => {
+  /* ================= FIXED PRICES ================= */
+  const updateOverride = (i, key, value) => {
     const next = [...overrides];
-    next[index][key] = key === "fixedPrice" ? Number(value) : value;
+    next[i][key] = key === "fixedPrice" ? Number(value) : value;
     setOverrides(next);
   };
 
   const addOverride = () => {
     setOverrides([
       ...overrides,
-      {
-        gameSlug: "",
-        itemSlug: "",
-        fixedPrice: 0,
-      },
+      { gameSlug: "", itemSlug: "", fixedPrice: 0 },
     ]);
   };
 
-  const deleteOverride = (index) => {
-    const next = overrides.filter((_, i) => i !== index);
-    setOverrides(next);
+  const deleteOverride = (i) => {
+    setOverrides(overrides.filter((_, index) => index !== i));
   };
 
   return (
-    <div className="max-w-5xl space-y-10">
+    <div className="max-w-5xl space-y-12">
 
       {/* ================= HEADER ================= */}
       <div>
         <h2 className="text-xl font-bold">Pricing Rules</h2>
         <p className="text-sm text-[var(--muted)]">
-          Slab-based markup and fixed pricing for selected items
+          Decide how much extra you earn on each order.
         </p>
       </div>
 
-      {/* ================= PRICING TYPE ================= */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-semibold">Pricing For</label>
+      {/* ================= USER TYPE ================= */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-semibold">Apply pricing for</span>
         <select
           value={pricingType}
           onChange={(e) => setPricingType(e.target.value)}
-          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm"
+          className="px-4 py-2 rounded-lg border bg-[var(--background)]"
         >
           <option value="admin">Admin Users</option>
           <option value="user">Normal Users</option>
         </select>
       </div>
 
-      {/* =================================================
-          SLAB PRICING
-         ================================================= */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Slab Pricing</h3>
+      {/* ================= SLAB PRICING ================= */}
+      <section className="space-y-4">
+        <h3 className="text-lg font-semibold">
+          Price Range Markup
+        </h3>
+        <p className="text-sm text-[var(--muted)]">
+          Add extra percentage based on item price range.
+        </p>
 
-        <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+        {/* ===== Mobile ===== */}
+        <div className="md:hidden space-y-3">
+          {slabs.map((s, i) => (
+            <div
+              key={i}
+              className="border rounded-xl p-4 space-y-3"
+            >
+              <input
+                type="number"
+                placeholder="Minimum Price (₹)"
+                value={s.min}
+                onChange={(e) =>
+                  updateSlab(i, "min", e.target.value)
+                }
+                className="input"
+              />
+              <input
+                type="number"
+                placeholder="Maximum Price (₹)"
+                value={s.max}
+                onChange={(e) =>
+                  updateSlab(i, "max", e.target.value)
+                }
+                className="input"
+              />
+              <input
+                type="number"
+                placeholder="Extra Charge (%)"
+                value={s.percent}
+                onChange={(e) =>
+                  updateSlab(i, "percent", e.target.value)
+                }
+                className="input"
+              />
+
+              <button
+                onClick={() => deleteSlab(i)}
+                className="text-sm text-red-400"
+              >
+                Remove Range
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* ===== Desktop ===== */}
+        <div className="hidden md:block border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-black/20">
               <tr>
-                <th className="px-4 py-3 text-left">Min Price</th>
-                <th className="px-4 py-3 text-left">Max Price</th>
-                <th className="px-4 py-3 text-left">Markup %</th>
+                <th className="px-4 py-3">Min ₹</th>
+                <th className="px-4 py-3">Max ₹</th>
+                <th className="px-4 py-3">Extra %</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {slabs.map((s, i) => (
-                <tr
-                  key={i}
-                  className="border-t border-[var(--border)]"
-                >
+                <tr key={i} className="border-t">
                   <td className="px-4 py-2">
                     <input
                       type="number"
@@ -106,10 +146,9 @@ export default function PricingTab({
                       onChange={(e) =>
                         updateSlab(i, "min", e.target.value)
                       }
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2">
                     <input
                       type="number"
@@ -117,10 +156,9 @@ export default function PricingTab({
                       onChange={(e) =>
                         updateSlab(i, "max", e.target.value)
                       }
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2">
                     <input
                       type="number"
@@ -128,14 +166,13 @@ export default function PricingTab({
                       onChange={(e) =>
                         updateSlab(i, "percent", e.target.value)
                       }
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={() => deleteSlab(i)}
-                      className="text-xs text-red-400 hover:underline"
+                      className="text-xs text-red-400"
                     >
                       Delete
                     </button>
@@ -147,65 +184,96 @@ export default function PricingTab({
         </div>
 
         <button
-          onClick={() =>
-            setSlabs([...slabs, { min: 0, max: 0, percent: 0 }])
-          }
-          className="text-sm font-semibold text-[var(--accent)] hover:underline"
+          onClick={addSlab}
+          className="text-sm font-semibold text-[var(--accent)]"
         >
-          + Add Price Slab
+          + Add Price Range
         </button>
-      </div>
+      </section>
 
-      {/* =================================================
-          FIXED ITEM PRICING
-         ================================================= */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">
-          Fixed Item Pricing (Overrides)
+      {/* ================= FIXED PRICING ================= */}
+      <section className="space-y-4">
+        <h3 className="text-lg font-semibold">
+          Fixed Item Price
         </h3>
-
         <p className="text-sm text-[var(--muted)]">
-          These prices completely bypass slab pricing.
+          This price ignores all markup rules.
         </p>
 
-        <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+        {/* Mobile */}
+        <div className="md:hidden space-y-3">
+          {overrides.map((o, i) => (
+            <div
+              key={i}
+              className="border rounded-xl p-4 space-y-3"
+            >
+              <input
+                placeholder="Game Slug"
+                value={o.gameSlug}
+                onChange={(e) =>
+                  updateOverride(i, "gameSlug", e.target.value)
+                }
+                className="input"
+              />
+              <input
+                placeholder="Item Slug"
+                value={o.itemSlug}
+                onChange={(e) =>
+                  updateOverride(i, "itemSlug", e.target.value)
+                }
+                className="input"
+              />
+              <input
+                type="number"
+                placeholder="Final Price (₹)"
+                value={o.fixedPrice}
+                onChange={(e) =>
+                  updateOverride(i, "fixedPrice", e.target.value)
+                }
+                className="input"
+              />
+              <button
+                onClick={() => deleteOverride(i)}
+                className="text-sm text-red-400"
+              >
+                Remove Fixed Price
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop */}
+        <div className="hidden md:block border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-black/20">
               <tr>
-                <th className="px-4 py-3 text-left">Game Slug</th>
-                <th className="px-4 py-3 text-left">Item Slug</th>
-                <th className="px-4 py-3 text-left">Fixed Price</th>
+                <th className="px-4 py-3">Game</th>
+                <th className="px-4 py-3">Item</th>
+                <th className="px-4 py-3">Final ₹</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {overrides.map((o, i) => (
-                <tr
-                  key={i}
-                  className="border-t border-[var(--border)]"
-                >
+                <tr key={i} className="border-t">
                   <td className="px-4 py-2">
                     <input
                       value={o.gameSlug}
                       onChange={(e) =>
                         updateOverride(i, "gameSlug", e.target.value)
                       }
-                      placeholder="game-slug"
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2">
                     <input
                       value={o.itemSlug}
                       onChange={(e) =>
                         updateOverride(i, "itemSlug", e.target.value)
                       }
-                      placeholder="item-slug"
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2">
                     <input
                       type="number"
@@ -213,51 +281,39 @@ export default function PricingTab({
                       onChange={(e) =>
                         updateOverride(i, "fixedPrice", e.target.value)
                       }
-                      className="w-full bg-transparent border border-[var(--border)] rounded-md px-2 py-1"
+                      className="input"
                     />
                   </td>
-
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={() => deleteOverride(i)}
-                      className="text-xs text-red-400 hover:underline"
+                      className="text-xs text-red-400"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
-
-              {!overrides.length && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-4 text-center text-[var(--muted)]"
-                  >
-                    No fixed price overrides
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
 
         <button
           onClick={addOverride}
-          className="text-sm font-semibold text-[var(--accent)] hover:underline"
+          className="text-sm font-semibold text-[var(--accent)]"
         >
           + Add Fixed Price
         </button>
-      </div>
+      </section>
 
-      {/* ================= ACTIONS ================= */}
+      {/* ================= SAVE ================= */}
       <div className="flex justify-end">
         <button
           onClick={onSave}
           disabled={!canSave}
-          className={`px-6 py-2 rounded-lg font-semibold transition ${
+          className={`px-6 py-2 rounded-lg font-semibold ${
             canSave
-              ? "bg-[var(--accent)] text-black hover:opacity-90"
+              ? "bg-[var(--accent)] text-black"
               : "bg-gray-500/40 text-gray-400 cursor-not-allowed"
           }`}
         >
