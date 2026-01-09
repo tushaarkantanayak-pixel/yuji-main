@@ -47,13 +47,13 @@ export default function BuyFlowPage() {
     saveVerifiedPlayer({
       playerId,
       zoneId: "", // BGMI does not use zone
-      username: "BGMI Player",
+      username: "Membership",
       region: "INDIA",
       savedAt: Date.now(),
     });
 
     setReviewData({
-      userName: "BGMI Player",
+      userName: "Membership",
       region: "INDIA",
       playerId,
       zoneId: "",
@@ -136,7 +136,7 @@ export default function BuyFlowPage() {
         {showSuccess && (
           <div className="bg-green-600/20 border border-green-600 text-green-500 p-6 rounded-xl text-center">
             <h2 className="text-xl font-bold">Payment Successful ✔</h2>
-            <p className="text-sm mt-2">Your BGMI order has been placed.</p>
+            <p className="text-sm mt-2">Your membership order has been placed.</p>
           </div>
         )}
 
