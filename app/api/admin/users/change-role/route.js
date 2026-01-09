@@ -9,14 +9,14 @@ export async function PATCH(req) {
     // ---------------- AUTH ----------------
     const auth = req.headers.get("authorization");
 
-    if (!auth?.startsWith("Bearer ")) {
+    if (!auth || !auth.startsWith("Bearer ")) {
       return Response.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Only OWNER can change roles
+    // 🔒 Only OWNER can change roles
     if (decoded.userType !== "owner") {
       return Response.json({ message: "Forbidden" }, { status: 403 });
     }
@@ -31,7 +31,9 @@ export async function PATCH(req) {
       );
     }
 
-    const allowedRoles = ["user", "admin", "owner"];
+    // ✅ member added
+    const allowedRoles = ["user", "member", "admin", "owner"];
+
     if (!allowedRoles.includes(newUserType)) {
       return Response.json(
         { message: "Invalid userType" },
@@ -47,10 +49,10 @@ export async function PATCH(req) {
     }
 
     /**
-     * 🔒 CRITICAL RULE
-     * Owner role is immutable and UNIQUE.
-     * No one (even an owner) can assign owner role via API.
+     * 🔒 CRITICAL RULES
      */
+
+    // ❌ Owner role cannot be ASSIGNED
     if (newUserType === "owner" && user.userType !== "owner") {
       return Response.json(
         { message: "Owner role cannot be assigned" },
@@ -58,7 +60,7 @@ export async function PATCH(req) {
       );
     }
 
-    // Optional safety: prevent owner downgrade
+    // ❌ Owner role cannot be DOWNGRADED
     if (user.userType === "owner" && newUserType !== "owner") {
       return Response.json(
         { message: "Owner role cannot be changed" },
@@ -79,7 +81,7 @@ export async function PATCH(req) {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error("ROLE UPDATE ERROR:", err);
     return Response.json(
       { success: false, message: "Server error" },
       { status: 500 }

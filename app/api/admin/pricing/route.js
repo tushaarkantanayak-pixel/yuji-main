@@ -3,10 +3,11 @@ import PricingConfig from "@/models/PricingConfig";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
-/* ================= AUTH HELPER ================= */
-const requireAdminOrOwner = (req) => {
+/* ================= AUTH HELPERS ================= */
+const requireOwner = (req) => {
   const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) {
+
+  if (!auth || !auth.startsWith("Bearer ")) {
     return { error: "Unauthorized", status: 401 };
   }
 
@@ -14,7 +15,29 @@ const requireAdminOrOwner = (req) => {
     const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!["owner", "admin"].includes(decoded.userType)) {
+    if (decoded.userType !== "owner") {
+      return { error: "Forbidden", status: 403 };
+    }
+
+    return { decoded };
+  } catch {
+    return { error: "Invalid token", status: 401 };
+  }
+};
+
+const requireAdminOrOwner = (req) => {
+  const auth = req.headers.get("authorization");
+
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return { error: "Unauthorized", status: 401 };
+  }
+
+  try {
+    const token = auth.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // owner, admin, member can VIEW pricing
+    if (!["owner", "admin", "member"].includes(decoded.userType)) {
       return { error: "Forbidden", status: 403 };
     }
 
@@ -25,7 +48,8 @@ const requireAdminOrOwner = (req) => {
 };
 
 /* =================================================
-   GET → Fetch pricing (slabs + overrides)
+   GET → Fetch pricing
+   admin & member share SAME pricing
    ================================================= */
 export async function GET(req) {
   try {
@@ -49,7 +73,13 @@ export async function GET(req) {
       );
     }
 
-    const pricing = await PricingConfig.findOne({ userType }).lean();
+    // 🔑 member uses admin pricing
+    const effectiveUserType =
+      userType === "member" ? "admin" : userType;
+
+    const pricing = await PricingConfig.findOne({
+      userType: effectiveUserType,
+    }).lean();
 
     return NextResponse.json({
       success: true,
@@ -68,13 +98,14 @@ export async function GET(req) {
 }
 
 /* =================================================
-   PATCH → Save pricing (slabs + overrides)
+   PATCH → Save pricing
+   ONLY OWNER CAN SET PRICE
    ================================================= */
 export async function PATCH(req) {
   try {
     await connectDB();
 
-    const authCheck = requireAdminOrOwner(req);
+    const authCheck = requireOwner(req);
     if (authCheck.error) {
       return NextResponse.json(
         { success: false, message: authCheck.error },
@@ -82,11 +113,24 @@ export async function PATCH(req) {
       );
     }
 
-    const { userType, slabs = [], overrides = [] } = await req.json();
+    const body = await req.json();
+    const { userType, slabs = [], overrides = [] } = body;
 
     if (!userType) {
       return NextResponse.json(
         { success: false, message: "userType is required" },
+        { status: 400 }
+      );
+    }
+
+    // 🔒 Pricing stored ONLY for admin
+    if (userType !== "admin") {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Pricing can only be set for admin (member inherits it)",
+        },
         { status: 400 }
       );
     }
@@ -121,7 +165,7 @@ export async function PATCH(req) {
     }
 
     const updated = await PricingConfig.findOneAndUpdate(
-      { userType },
+      { userType: "admin" },
       {
         $set: {
           slabs,

@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema(
     order: { type: Number, default: 0 },
        userType: {
       type: String,
-      enum: ["user", "admin", "owner"],
+      enum: ["user", "admin", "owner","member"],
       default: "user",
     },
      resetOtp: String,

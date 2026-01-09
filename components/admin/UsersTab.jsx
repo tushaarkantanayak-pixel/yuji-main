@@ -50,6 +50,8 @@ export default function UsersTab({
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
+               <option value="member">Member</option>
+
                 {u.userType === "owner" && (
                   <option value="owner">Owner</option>
                 )}
@@ -103,6 +105,8 @@ export default function UsersTab({
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                     <option value="member">Member</option>
+
                     {u.userType === "owner" && (
                       <option value="owner">Owner</option>
                     )}
