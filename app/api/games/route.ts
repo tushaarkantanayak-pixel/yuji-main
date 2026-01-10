@@ -76,7 +76,7 @@ export async function GET() {
 
       // Rename MLBB SMALL/PHP → MLBB SMALL
       if (updatedGame.gameName === "MLBB SMALL/PHP") {
-        updatedGame.gameName = "MLBB SMALL";
+        updatedGame.gameName = "MLBB SMALL/PHP";
       }
 
       // Fix wrong publisher spelling
@@ -93,7 +93,7 @@ export async function GET() {
       }
 
       // Replace MLBB SMALL image
-      if (updatedGame.gameName === "MLBB SMALL") {
+      if (updatedGame.gameName === "MLBB SMALL/PHP") {
         updatedGame.gameImageId = {
           ...updatedGame.gameImageId,
           image: MLBB_SMALL_IMAGE,
